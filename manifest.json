@@ -1,0 +1,32 @@
+{
+  "manifest_version": 2,
+  "name": "Twitter Bookmarks Fetcher",
+  "version": "1.0.0",
+  "description": "Fetches bookmarked tweets from Twitter.",
+  "icons": {
+    "48": "icon.png"
+  },
+  "permissions": [
+    "tabs",
+    "https://twitter.com/*",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content-script.js"
+      ]
+    }
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  }
+}
