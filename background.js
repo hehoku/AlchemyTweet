@@ -1,23 +1,64 @@
-chrome.webRequest.onBeforeSendHeaders.addListener(
-  (details) => {
-    if (details.url.includes("Bookmarks")) {
-      const url = encodeURIComponent(details.url);
-      const authorizationHeader = details.requestHeaders.find(
-        (header) => header.name.toLowerCase() === "authorization"
-      );
-      const csrfTokenHeader = details.requestHeaders.find(
-        (header) => header.name.toLowerCase() === "x-csrf-token"
-      );
+if (typeof window !== "undefined") {
 
-      if (authorizationHeader && csrfTokenHeader) {
-        const authorization = encodeURIComponent(authorizationHeader.value);
-        const csrfToken = encodeURIComponent(csrfTokenHeader.value);
-        const newUrl = `https://twitter.com/i/bookmarks?url=${url}&authorization=${authorization}&csrfToken=${csrfToken}`;
+  console.log("Hello from background script!")
 
-        chrome.tabs.update(details.tabId, { url: newUrl });
+  let tabId
+  let authorization
+  let csrfToken
+
+  const webRequestOptions = ["requestHeaders", "blocking"]
+
+  if (typeof window.chrome === "undefined") {
+    // For Chrome only
+    webRequestOptions.push("extraHeaders")
+  }
+
+  chrome.webRequest.onBeforeSendHeaders.addListener(
+    details => {
+      const requestHeaders = details.requestHeaders
+      // This is required for our fetch requests to succeed in Chromes
+      if (!requestHeaders.find(h => h.name.toLowerCase() === "origin")) {
+        requestHeaders.push({ name: "Origin", value: "https://twitter.com" })
+      }
+      return {
+        requestHeaders,
+      }
+    },
+    { urls: ["*://*.twitter.com/*Bookmarks*"] },
+    webRequestOptions
+  )
+
+  chrome.webRequest.onSendHeaders.addListener(
+    async details => {
+      tabId = details.tabId
+      authorization = details.requestHeaders.find(h => h.name.toLowerCase() === "authorization").value
+      csrfToken = details.requestHeaders.find(h => h.name.toLowerCase() === "x-csrf-token").value
+      sendCredentials()
+    },
+    { urls: ["*://*.twitter.com/*Bookmarks*"] },
+    ["requestHeaders"]
+  )
+
+  async function sendCredentials() {
+    let messageSent = false
+    let tries = 0
+    while (!messageSent && tries < 100) {
+      try {
+        tries++
+        console.log("Trying message...")
+        const res = await chrome.tabs.sendMessage(tabId, {
+          name: "credentials",
+          authorization,
+          csrfToken,
+        })
+        messageSent = true
+        console.log("Sent message")
+      } catch (err) {
+        console.log("error", err)
+        await delay(50)
       }
     }
-  },
-  { urls: ["*://*.twitter.com/*"] },
-  ["requestHeaders", "blocking"]
-);
+  }
+
+  // end of script
+}

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Fetches bookmarked tweets from Twitter.",
   "icons": {
-    "48": "icon.png"
+    "48": "icon48.png"
   },
   "permissions": [
     "tabs",
@@ -27,6 +27,6 @@
     "scripts": [
       "background.js"
     ],
-    "persistent": false
+    "persistent": true
   }
 }
